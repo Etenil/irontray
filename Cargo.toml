@@ -1,0 +1,4 @@
+[package]
+name = "irontray"
+version = "0.1.0"
+authors = ["Guillaume Pasquet <dev@etenil.net>"]
