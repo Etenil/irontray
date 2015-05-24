@@ -5,6 +5,9 @@ use std::thread;
 use std::env;
 use std::str;
 
+mod http;
+use http::{HttpRequest, FromString};
+
 fn serve_client(mut client: TcpStream) {
     println!("Request from {}\n", client.peer_addr().unwrap());
     
@@ -20,15 +23,19 @@ fn serve_client(mut client: TcpStream) {
             buffer = buffer + str::from_utf8(&buf).unwrap();
             
             if buffer.contains("\r\n\r\n") {
-                println!("End of headers");
+                // End of headers.
                 break;
             }
         }
     }
     
-    println!("Request received: {}", buffer);
-        
+    let req = HttpRequest::from_string(buffer)
+        .ok()
+        .expect("Couldn't read request.");
+    
     client.write(b"Hello world\n").unwrap();
+    
+    println!("Request:\n{}\n", req.to_string());
 }
 
 fn main() {
@@ -49,6 +56,8 @@ fn main() {
     let proto: &str = &address_proto;
     
     let listener = TcpListener::bind(proto).unwrap();
+    
+    println!("Irontray server started on {}", proto);
     
     for stream in listener.incoming() {
         thread::spawn(|| {
