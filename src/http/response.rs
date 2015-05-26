@@ -21,7 +21,10 @@
 // This is an implementation of a standard HTTP response. To wrap data into.
 
 
-use use std::str::FromStr;
+use std::str::FromStr;
+
+use http::protocol::HttpVersion;
+use http::traits::FromU16;
 
 enum HttpStatus {
     // 100s
@@ -293,18 +296,25 @@ impl ToString for HttpStatus {
     }
 }
 
-
 struct HttpResponse {
     http_version: HttpVersion,
     status: HttpStatus,
     content_type: String,
     length: u64,
+    content: String,
 }
 
-impl FromString for HttpResponse {
-    type Err = ();
-    
-    fn from_string(s: String) -> Result<HttpResponse, ()> {
+impl ToString for HttpResponse {
+    fn to_string(&self) -> String {
+        let mut buf: String = "".to_string();
         
+        buf = format!("{} {}", self.http_version.to_string(), self.status.to_string());
+        buf = format!("{}\r\nContent-Type: {}", buf, self.content_type);
+        buf = format!("{}\r\nContent-Length: {}", buf, self.length);
+        
+        // End of header and content.
+        buf = format!("{}\r\n\r\n{}", buf, self.content);
+        
+        return buf;
     }
 }

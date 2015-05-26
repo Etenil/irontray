@@ -24,11 +24,11 @@ use std::net::{TcpListener, TcpStream};
 use std::thread;
 use std::env;
 use std::str;
-use std::path::Path;
-use std::fs::File;
+use std::fs::{File, PathExt};
 
 mod http;
-use http::{HttpRequest, FromString};
+use http::request::HttpRequest;
+use http::traits::FromString;
 
 fn serve_client(mut client: TcpStream) {
     println!("Request from {}\n", client.peer_addr().unwrap());
@@ -55,19 +55,17 @@ fn serve_client(mut client: TcpStream) {
         .ok()
         .expect("Couldn't read request.");
     
-    let req_file = Path::new(req.path);
+    let file_attempt = File::open(req.path.clone());
+    match file_attempt {
+        Ok(v) => {
+            let file_size = v.metadata().unwrap().len();
+        },
+        Err(e) => {
+            println!("Couldn't open file!");
+        }
+    }
     
-    if !req_file.exists() {
-        println!("Requested file doesn't exissst!");
-        // TODO: Implement 404.
-    }
-    else {
-        let mut file = try!(File::open(req.path));
-        let file_size = req_file.stat().size;
-        
-        
-        client.write(b"Hello world\n").unwrap();
-    }
+    client.write(b"Hello world\n").unwrap();
 }
 
 fn main() {

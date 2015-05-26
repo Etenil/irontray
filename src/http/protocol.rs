@@ -18,12 +18,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+use std::str::FromStr;
+
 /**
  * Common HTTP stuff.
  */
 
 #[derive(PartialEq)]
-enum HttpVersion {
+pub enum HttpVersion {
     HTTP1dot0,
     HTTP1dot1,
     HTTP2

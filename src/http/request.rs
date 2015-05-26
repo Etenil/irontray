@@ -20,6 +20,9 @@
 
 use std::str::FromStr;
 
+use http::protocol::HttpVersion;
+use http::traits::FromString;
+
 #[derive(PartialEq)]
 enum HttpMethod {
     OPTIONS,
@@ -88,7 +91,7 @@ impl FromStr for HttpHeader {
 
 pub struct HttpRequest {
     method: HttpMethod,
-    path: String,
+    pub path: String,
     http_version: HttpVersion,
     host: String,
     user_agent: String,
@@ -146,7 +149,7 @@ impl FromString for HttpRequest {
                     match sname {
                         "Host" => req_host = v.value,
                         "User-Agent" => req_user_agent = v.value,
-                        "Content-Length" => req_length = u64.parse(v.value).ok(),
+                        "Content-Length" => req_length = u64::from_str(&v.value).unwrap(),
                         _ => {}
                     }
                 },
