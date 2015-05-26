@@ -1,3 +1,23 @@
+// Copyright (c) 2015 Guillaume Pasquet
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
 use std::str::FromStr;
 
 #[derive(PartialEq)]
@@ -71,7 +91,8 @@ pub struct HttpRequest {
     path: String,
     http_version: HttpVersion,
     host: String,
-    user_agent: String
+    user_agent: String,
+    length: u64,
 }
 
 impl ToString for HttpRequest {
@@ -87,12 +108,6 @@ impl ToString for HttpRequest {
             self.user_agent
         );
     }
-}
-
-pub trait FromString {
-    type Err;
-    
-    fn from_string(s: String) -> Result<Self, Self::Err>;
 }
 
 impl FromString for HttpRequest {
@@ -119,6 +134,7 @@ impl FromString for HttpRequest {
         
         let mut req_host: String = "".to_string();
         let mut req_user_agent: String = "".to_string();
+        let mut req_length = 0u64;
         
         // Pop the first line now.
         header_lines.remove(0);
@@ -130,6 +146,7 @@ impl FromString for HttpRequest {
                     match sname {
                         "Host" => req_host = v.value,
                         "User-Agent" => req_user_agent = v.value,
+                        "Content-Length" => req_length = u64.parse(v.value).ok(),
                         _ => {}
                     }
                 },
@@ -145,6 +162,7 @@ impl FromString for HttpRequest {
             http_version: req_version,
             host:         req_host,
             user_agent:   req_user_agent,
+            length:       req_length,
         });
     }
 }
