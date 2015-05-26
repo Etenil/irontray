@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+#[derive(PartialEq)]
 enum HttpMethod {
     OPTIONS,
     GET,
@@ -40,36 +41,6 @@ impl ToString for HttpMethod {
             HttpMethod::DELETE  => "DELETE".to_string(),
             HttpMethod::TRACE   => "TRACE".to_string(),
             HttpMethod::CONNECT => "CONNECT".to_string(),
-        }
-    }
-}
-
-enum HttpVersion {
-    HTTP1dot0,
-    HTTP1dot1,
-    HTTP2
-}
-
-impl FromStr for HttpVersion {
-    type Err = ();
-    
-    fn from_str(s: &str) -> Result<HttpVersion, ()> {
-        match s {
-            "HTTP/1.0" => Ok(HttpVersion::HTTP1dot0),
-            "HTTP/1.1" => Ok(HttpVersion::HTTP1dot1),
-            "HTTP/2.0" => Ok(HttpVersion::HTTP2),
-            "HTTP/2"   => Ok(HttpVersion::HTTP2),
-            _ => Err(())
-        }
-    }
-}
-
-impl ToString for HttpVersion {
-    fn to_string(&self) -> String {
-        match *self {
-            HttpVersion::HTTP1dot0 => "HTTP/1.0".to_string(),
-            HttpVersion::HTTP1dot1 => "HTTP/1.1".to_string(),
-            HttpVersion::HTTP2     => "HTTP2".to_string(),
         }
     }
 }
@@ -175,5 +146,23 @@ impl FromString for HttpRequest {
             host:         req_host,
             user_agent:   req_user_agent,
         });
+    }
+}
+
+#[test]
+fn from_string_works() {
+    let request = "GET /blob HTTP/1.1\r\nHost: john.com\r\nUser-Agent: rust-test";
+    let req = HttpRequest::from_string(request.to_string());
+    match req {
+        Ok(v) => {
+            assert!(v.method == HttpMethod::GET);
+            assert!(v.path == "/blob".to_string());
+            assert!(v.http_version == HttpVersion::HTTP1dot1);
+            assert!(v.host == "john.com".to_string());
+            assert!(v.user_agent == "rust-test".to_string());
+        },
+        Err(e) => {
+            panic!(e);
+        }
     }
 }

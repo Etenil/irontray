@@ -4,6 +4,8 @@ use std::net::{TcpListener, TcpStream};
 use std::thread;
 use std::env;
 use std::str;
+use std::path::Path;
+use std::fs::File;
 
 mod http;
 use http::{HttpRequest, FromString};
@@ -33,9 +35,19 @@ fn serve_client(mut client: TcpStream) {
         .ok()
         .expect("Couldn't read request.");
     
-    client.write(b"Hello world\n").unwrap();
+    let req_file = Path::new(req.path);
     
-    println!("Request:\n{}\n", req.to_string());
+    if !req_file.exists() {
+        println!("Requested file doesn't exissst!");
+        // TODO: Implement 404.
+    }
+    else {
+        let mut file = try!(File::open(req.path));
+        let file_size = req_file.stat().size;
+        
+        
+        client.write(b"Hello world\n").unwrap();
+    }
 }
 
 fn main() {
