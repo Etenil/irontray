@@ -24,6 +24,7 @@ use std::net::{TcpListener, TcpStream};
 use std::thread;
 use std::env;
 use std::str;
+use std::path::PathBuf;
 use std::fs::File;
 
 mod http;
@@ -56,7 +57,13 @@ fn serve_client(mut client: TcpStream) {
         .ok()
         .expect("Couldn't read request.");
     
-    let file_attempt = File::open(req.path.clone());
+    
+    let mut file_path: PathBuf = env::current_dir().unwrap();
+    file_path.push(req.path.clone().trim_matches('/'));
+    
+    println!("Attempting to serve {}", file_path.display());
+    
+    let file_attempt = File::open(file_path);
     let mut response: HttpResponse = HttpResponse::quick_not_found("File not found!".to_string());
     match file_attempt {
         Ok(mut file) => {
