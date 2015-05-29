@@ -95,7 +95,7 @@ pub struct HttpRequest {
     http_version: HttpVersion,
     host: String,
     user_agent: String,
-    length: u64,
+    length: usize,
 }
 
 impl ToString for HttpRequest {
@@ -137,7 +137,7 @@ impl FromString for HttpRequest {
         
         let mut req_host: String = "".to_string();
         let mut req_user_agent: String = "".to_string();
-        let mut req_length = 0u64;
+        let mut req_length = 0usize;
         
         // Pop the first line now.
         header_lines.remove(0);
@@ -149,7 +149,7 @@ impl FromString for HttpRequest {
                     match sname {
                         "Host" => req_host = v.value,
                         "User-Agent" => req_user_agent = v.value,
-                        "Content-Length" => req_length = u64::from_str(&v.value).unwrap(),
+                        "Content-Length" => req_length = usize::from_str(&v.value).unwrap(),
                         _ => {}
                     }
                 },

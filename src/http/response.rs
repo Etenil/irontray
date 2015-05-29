@@ -296,11 +296,11 @@ impl ToString for HttpStatus {
     }
 }
 
-struct HttpResponse {
+pub struct HttpResponse {
     http_version: HttpVersion,
     status: HttpStatus,
     content_type: String,
-    length: u64,
+    length: usize,
     content: String,
 }
 
@@ -316,5 +316,28 @@ impl ToString for HttpResponse {
         buf = format!("{}\r\n\r\n{}", buf, self.content);
         
         return buf;
+    }
+}
+
+impl HttpResponse {
+    pub fn success_with_content(content: String) -> HttpResponse {
+        HttpResponse {
+            http_version: HttpVersion::HTTP1dot1,
+            status: HttpStatus::OK,
+            content_type: "text/html".to_string(),
+            length: content.len(),
+            content: content,
+        }
+    }
+    
+    // Quick way to create a 404 error.
+    pub fn quick_not_found(info: String) -> HttpResponse {
+        HttpResponse {
+            http_version: HttpVersion::HTTP1dot1,
+            status: HttpStatus::NOT_FOUND,
+            content_type: "text/html".to_string(),
+            length: info.len(),
+            content: info,
+        }
     }
 }

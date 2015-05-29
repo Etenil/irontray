@@ -24,10 +24,11 @@ use std::net::{TcpListener, TcpStream};
 use std::thread;
 use std::env;
 use std::str;
-use std::fs::{File, PathExt};
+use std::fs::File;
 
 mod http;
 use http::request::HttpRequest;
+use http::response::HttpResponse;
 use http::traits::FromString;
 
 fn serve_client(mut client: TcpStream) {
@@ -56,16 +57,25 @@ fn serve_client(mut client: TcpStream) {
         .expect("Couldn't read request.");
     
     let file_attempt = File::open(req.path.clone());
+    let mut response: HttpResponse = HttpResponse::quick_not_found("File not found!".to_string());
     match file_attempt {
-        Ok(v) => {
-            let file_size = v.metadata().unwrap().len();
+        Ok(mut file) => {
+            let mut content = "".to_string();
+            let open_file_attempt = file.read_to_string(&mut content);
+            match open_file_attempt {
+                Ok(file_length) => {
+                    response = HttpResponse::success_with_content(content);
+                },
+                Err(e) => {
+                    response = HttpResponse::quick_not_found("File not found!".to_string());
+                }
+            }
         },
         Err(e) => {
-            println!("Couldn't open file!");
+            println!("{}", e);
         }
     }
-    
-    client.write(b"Hello world\n").unwrap();
+    client.write(response.to_string().as_bytes());
 }
 
 fn main() {
