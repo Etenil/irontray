@@ -84,11 +84,19 @@ fn main() {
     let mut ip_address;
     let mut port;
     let mut address_proto;
+    let mut port_or_ip;
     
     if args.len() >= 3 {
         ip_address = args[1].clone();
         port = args[2].clone();
         address_proto = format!("{}:{}", ip_address, port);
+    } else if args.len() == 2 {
+        port_or_ip = args[1].clone();
+        if port_or_ip.parse::<u16>().is_ok() {  // Looks like a port
+            address_proto = format!("0.0.0.0:{}", port_or_ip);
+        } else {  // Might be an IP address
+            address_proto = format!("{}:8000", port_or_ip);
+        }
     } else {
         address_proto = format!("0.0.0.0:8000");
     }
