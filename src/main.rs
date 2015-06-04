@@ -26,6 +26,8 @@ use std::env;
 use std::str;
 use std::path::PathBuf;
 use std::fs::File;
+extern crate getopts;
+use getopts::Options;
 
 mod http;
 use http::request::HttpRequest;
@@ -85,31 +87,41 @@ fn serve_client(mut client: TcpStream) {
     client.write(response.to_string().as_bytes());
 }
 
+fn print_usage(program: &str, opts: Options) {
+    let brief = format!("Usage: {} [options]", program);
+    print!("{}", opts.usage(&brief));
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
+    let program = args[0].clone();
+    let mut opts = Options::new();
     
-    let mut ip_address;
-    let mut port;
-    let mut address_proto;
-    let mut port_or_ip;
+    opts.optopt("i", "ip-address", "set listening IP address", "0.0.0.0");
+    opts.optopt("p", "port", "set TCP port to listen on", "8000");
+    opts.optflag("h", "help", "print this help menu");
     
-    if args.len() >= 3 {
-        ip_address = args[1].clone();
-        port = args[2].clone();
-        address_proto = format!("{}:{}", ip_address, port);
-    } else if args.len() == 2 {
-        port_or_ip = args[1].clone();
-        if port_or_ip.parse::<u16>().is_ok() {  // Looks like a port
-            address_proto = format!("0.0.0.0:{}", port_or_ip);
-        } else {  // Might be an IP address
-            address_proto = format!("{}:8000", port_or_ip);
-        }
-    } else {
-        address_proto = format!("0.0.0.0:8000");
+    let matches = match opts.parse(&args[1..]) {
+        Ok(v)  => { v },
+        Err(e) => { panic!(e.to_string()) }
+    };
+    
+    let mut ip_address = "0.0.0.0".to_string();
+    let mut port = "8000".to_string();
+    
+    if matches.opt_present("h") {
+        print_usage(&program, opts);
+        return;
+    }
+    if matches.opt_present("i") {
+        ip_address = matches.opt_str("i").unwrap();
+    }
+    if matches.opt_present("p") {
+        port = matches.opt_str("p").unwrap();
     }
     
+    let address_proto = format!("{}:{}", ip_address, port);
     let proto: &str = &address_proto;
-    
     let listener = TcpListener::bind(proto).unwrap();
     
     println!("Irontray server started on {}", proto);
@@ -120,3 +132,4 @@ fn main() {
         });
     }
 }
+
