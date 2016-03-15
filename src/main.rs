@@ -34,7 +34,10 @@ use http::request::HttpRequest;
 use http::response::HttpResponse;
 use http::traits::FromString;
 
-fn serve_client(mut client: TcpStream) {
+mod config;
+use config::HttpConfig;
+
+fn serve_client(mut client: TcpStream, config: HttpConfig) {
     println!("Request from {}\n", client.peer_addr().unwrap());
     
     let mut buf = [0u8; 512];
@@ -60,7 +63,7 @@ fn serve_client(mut client: TcpStream) {
         .expect("Couldn't read request.");
     
     
-    let mut file_path: PathBuf = env::current_dir().unwrap();
+    let mut file_path = config.get_root_path();
     file_path.push(req.path.clone().trim_matches('/'));
     
     println!("Attempting to serve {}", file_path.display());
@@ -99,6 +102,7 @@ fn main() {
     
     opts.optopt("i", "ip-address", "set listening IP address", "0.0.0.0");
     opts.optopt("p", "port", "set TCP port to listen on", "8000");
+    opts.optopt("c", "conf", "path to the config file", "8000");
     opts.optflag("h", "help", "print this help menu");
     
     let matches = match opts.parse(&args[1..]) {
@@ -123,12 +127,19 @@ fn main() {
     let address_proto = format!("{}:{}", ip_address, port);
     let proto: &str = &address_proto;
     let listener = TcpListener::bind(proto).unwrap();
+
+    let config: HttpConfig;
+    if matches.opt_present("c") {
+        config = HttpConfig::new_from_file(matches.opt_str("c").unwrap()).unwrap();
+    } else {
+        config = HttpConfig::new_defaults().unwrap();
+    }
     
     println!("Irontray server started on {}", proto);
     
     for stream in listener.incoming() {
         thread::spawn(|| {
-            serve_client(stream.unwrap());
+            serve_client(stream.unwrap(), config);
         });
     }
 }
