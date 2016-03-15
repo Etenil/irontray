@@ -22,6 +22,7 @@ use std::io::Write;
 use std::io::Read;
 use std::net::{TcpListener, TcpStream};
 use std::thread;
+use std::sync::Arc;
 use std::env;
 use std::str;
 use std::path::PathBuf;
@@ -35,9 +36,9 @@ use http::response::HttpResponse;
 use http::traits::FromString;
 
 mod config;
-use config::HttpConfig;
+use config::config::HttpConfig;
 
-fn serve_client(mut client: TcpStream, config: HttpConfig) {
+fn serve_client(mut client: TcpStream, config: Arc<HttpConfig>) {
     println!("Request from {}\n", client.peer_addr().unwrap());
     
     let mut buf = [0u8; 512];
@@ -63,7 +64,9 @@ fn serve_client(mut client: TcpStream, config: HttpConfig) {
         .expect("Couldn't read request.");
     
     
-    let mut file_path = config.get_root_path();
+    let root_path: &str = *config.get_root_path();
+    let mut file_path: PathBuf = PathBuf::new();
+    file_path.push(root_path);
     file_path.push(req.path.clone().trim_matches('/'));
     
     println!("Attempting to serve {}", file_path.display());
@@ -128,19 +131,19 @@ fn main() {
     let proto: &str = &address_proto;
     let listener = TcpListener::bind(proto).unwrap();
 
-    let config: HttpConfig;
+    let config: Arc<HttpConfig>;
     if matches.opt_present("c") {
-        config = HttpConfig::new_from_file(matches.opt_str("c").unwrap()).unwrap();
+        config = Arc::new(HttpConfig::new_from_file(matches.opt_str("c").unwrap()).unwrap());
     } else {
-        config = HttpConfig::new_defaults().unwrap();
+        config = Arc::new(HttpConfig::new_defaults().unwrap());
     }
     
     println!("Irontray server started on {}", proto);
     
     for stream in listener.incoming() {
+        let conf = config.clone();
         thread::spawn(|| {
-            serve_client(stream.unwrap(), config);
+            serve_client(stream.unwrap(), conf);
         });
     }
 }
-
