@@ -68,6 +68,10 @@ fn serve_client(mut client: TcpStream, config: Arc<HttpConfig>) {
     let mut file_path: PathBuf = PathBuf::new();
     file_path.push(root_path);
     file_path.push(req.path.clone().trim_matches('/'));
+
+    if file_path.is_dir() {
+        file_path.push(*config.get_index());
+    }
     
     println!("Attempting to serve {}", file_path.display());
     

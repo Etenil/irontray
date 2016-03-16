@@ -7,6 +7,7 @@ extern crate toml;
 
 pub struct HttpConfig {
     root_path: PathBuf,
+    index: String,
 }
 
 impl HttpConfig {
@@ -41,20 +42,31 @@ impl HttpConfig {
             }
         };
 
+        let index = match http_sec.as_table().unwrap().get("index") {
+            Some(index) => index.as_str().unwrap(),
+            None => "index.html"
+        };
+
         let mut path = PathBuf::new();
         path.push(root_path.as_str().unwrap());
         return Ok(HttpConfig {
-            root_path: path
+            root_path: path,
+            index: String::from(index)
         });
     }
 
     pub fn new_defaults() -> Option<HttpConfig> {
         return Some(HttpConfig {
-            root_path: env::current_dir().unwrap()
+            root_path: env::current_dir().unwrap(),
+            index: String::from("index.html")
         });
     }
 
     pub fn get_root_path(&self) -> Box<&str> {
         return Box::new(self.root_path.to_str().unwrap());
+    }
+
+    pub fn get_index(&self) -> Box<&String> {
+        return Box::new(&self.index);
     }
 }
