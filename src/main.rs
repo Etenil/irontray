@@ -36,7 +36,7 @@ use http::response::HttpResponse;
 use http::traits::FromString;
 
 mod config;
-use config::config::HttpConfig;
+use config::httpconfig::HttpConfig;
 
 fn serve_client(mut client: TcpStream, config: Arc<HttpConfig>) {
     println!("Request from {}\n", client.peer_addr().unwrap());
@@ -133,7 +133,16 @@ fn main() {
 
     let config: Arc<HttpConfig>;
     if matches.opt_present("c") {
-        config = Arc::new(HttpConfig::new_from_file(matches.opt_str("c").unwrap()).unwrap());
+        let filename = matches.opt_str("c").unwrap();
+        match HttpConfig::new_from_file(filename) {
+            Ok(httpconf) => {
+                config = Arc::new(httpconf);
+            },
+            Err(e) => {
+                println!("{:?}", e);
+                return;
+            }
+        }
     } else {
         config = Arc::new(HttpConfig::new_defaults().unwrap());
     }
