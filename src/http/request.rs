@@ -100,14 +100,11 @@ pub struct HttpRequest {
 
 impl ToString for HttpRequest {
     fn to_string(&self) -> String {
-        let mut buf: String = "".to_string();
-        
         return format!(
-            "{} {} {}\r\nHost: {}\r\nUser-Agent: {}",
+            "{} {} {} \"{}\"",
             self.method.to_string(),
             self.path,
             self.http_version.to_string(),
-            self.host,
             self.user_agent
         );
     }

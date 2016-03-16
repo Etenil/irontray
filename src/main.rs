@@ -38,9 +38,13 @@ use http::traits::FromString;
 mod config;
 use config::httpconfig::HttpConfig;
 
-fn serve_client(mut client: TcpStream, config: Arc<HttpConfig>) {
-    println!("Request from {}\n", client.peer_addr().unwrap());
-    
+#[macro_use]
+extern crate log;
+use log::LogLevelFilter;
+extern crate syslog;
+use syslog::Facility;
+
+fn serve_client(mut client: TcpStream, config: Arc<HttpConfig>) {    
     let mut buf = [0u8; 512];
     let mut buffer = String::new();
     
@@ -63,7 +67,6 @@ fn serve_client(mut client: TcpStream, config: Arc<HttpConfig>) {
         .ok()
         .expect("Couldn't read request.");
     
-    
     let root_path: &str = *config.get_root_path();
     let mut file_path: PathBuf = PathBuf::new();
     file_path.push(root_path);
@@ -73,25 +76,39 @@ fn serve_client(mut client: TcpStream, config: Arc<HttpConfig>) {
         file_path.push(*config.get_index());
     }
     
-    println!("Attempting to serve {}", file_path.display());
-    
-    let file_attempt = File::open(file_path);
-    let mut response: HttpResponse = HttpResponse::quick_not_found("File not found!".to_string());
-    match file_attempt {
+    let response: HttpResponse;
+    match File::open(file_path) {
         Ok(mut file) => {
             let mut content = "".to_string();
-            let open_file_attempt = file.read_to_string(&mut content);
-            match open_file_attempt {
+            match file.read_to_string(&mut content) {
                 Ok(file_length) => {
+                    info!(
+                        "{} {} 200 {}",
+                        client.peer_addr().unwrap(),
+                        req.to_string(),
+                        file_length
+                    );
                     response = HttpResponse::success_with_content(content);
                 },
                 Err(e) => {
+                    info!(
+                        "{} {} 404 0",
+                        client.peer_addr().unwrap(),
+                        req.to_string()
+                    );
+                    error!("Couldn't read file: {}", e.to_string());
                     response = HttpResponse::quick_not_found("File not found!".to_string());
                 }
             }
         },
         Err(e) => {
-            println!("{}", e);
+            info!(
+                "{} {} 500 0",
+                client.peer_addr().unwrap(),
+                req.to_string()
+            );
+            error!("Couldn't open file: {:?}", e);
+            response = HttpResponse::quick_server_error("File not found!".to_string());
         }
     }
     client.write(response.to_string().as_bytes());
@@ -103,6 +120,13 @@ fn print_usage(program: &str, opts: Options) {
 }
 
 fn main() {
+    match syslog::init(Facility::LOG_USER, log::LogLevelFilter::Info, None) {
+        Err(e) => println!("Couldn't connect to syslog! {:?}", e),
+        Ok(()) => {}
+    };
+
+    info!("Starting Irontray server");
+    
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
     let mut opts = Options::new();
@@ -143,7 +167,7 @@ fn main() {
                 config = Arc::new(httpconf);
             },
             Err(e) => {
-                println!("{:?}", e);
+                error!("{:?}", e);
                 return;
             }
         }
@@ -151,7 +175,7 @@ fn main() {
         config = Arc::new(HttpConfig::new_defaults().unwrap());
     }
     
-    println!("Irontray server started on {}", proto);
+    info!("Listening on {}", proto);
     
     for stream in listener.incoming() {
         let conf = config.clone();

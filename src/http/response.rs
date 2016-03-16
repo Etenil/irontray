@@ -340,4 +340,15 @@ impl HttpResponse {
             content: info,
         }
     }
+
+    // Quick way to create a 500 error.
+    pub fn quick_server_error(info: String) -> HttpResponse {
+        HttpResponse {
+            http_version: HttpVersion::HTTP1dot1,
+            status: HttpStatus::INTERNAL_SERVER_ERROR,
+            content_type: "text/html".to_string(),
+            length: info.len(),
+            content: info,
+        }
+    }
 }
