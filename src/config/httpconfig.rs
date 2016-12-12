@@ -8,6 +8,7 @@ extern crate toml;
 pub struct HttpConfig {
     root_path: PathBuf,
     index: String,
+    port: String
 }
 
 impl HttpConfig {
@@ -38,7 +39,7 @@ impl HttpConfig {
         let root_path = match http_sec.as_table().unwrap().get("root_path") {
             Some(root_path) => root_path,
             None => {
-                return Err(format!("Failed to read config."));
+                return Err(format!("Root path must be set in config file."));
             }
         };
 
@@ -47,18 +48,28 @@ impl HttpConfig {
             None => "index.html"
         };
 
+        let port = match http_sec.as_table().unwrap().get("port") {
+            Some(port) => match(port.as_str()) {
+                Some(portString) => portString,
+                None => "8000"
+            },
+            None => "8000"
+        };
+
         let mut path = PathBuf::new();
         path.push(root_path.as_str().unwrap());
         return Ok(HttpConfig {
             root_path: path,
-            index: String::from(index)
+            index: String::from(index),
+            port: String::from(port)
         });
     }
 
     pub fn new_defaults() -> Option<HttpConfig> {
         return Some(HttpConfig {
             root_path: env::current_dir().unwrap(),
-            index: String::from("index.html")
+            index: String::from("index.html"),
+            port: String::from("8000")
         });
     }
 
@@ -68,5 +79,9 @@ impl HttpConfig {
 
     pub fn get_index(&self) -> Box<&String> {
         return Box::new(&self.index);
+    }
+
+    pub fn get_port(&self) -> Box<&String> {
+        return Box::new(&self.port);
     }
 }

@@ -6,10 +6,10 @@
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -44,29 +44,29 @@ use log::LogLevelFilter;
 extern crate syslog;
 use syslog::Facility;
 
-fn serve_client(mut client: TcpStream, config: Arc<HttpConfig>) {    
+fn serve_client(mut client: TcpStream, config: Arc<HttpConfig>) {
     let mut buf = [0u8; 512];
     let mut buffer = String::new();
-    
+
     loop {
         let len = client.read(&mut buf[0..512])
             .ok()
             .expect("Couldn't read from TCP client");
-            
+
         if len > 0 {
             buffer = buffer + str::from_utf8(&buf).unwrap();
-            
+
             if buffer.contains("\r\n\r\n") {
                 // End of headers.
                 break;
             }
         }
     }
-    
+
     let req = HttpRequest::from_string(buffer)
         .ok()
         .expect("Couldn't read request.");
-    
+
     let root_path: &str = *config.get_root_path();
     let mut file_path: PathBuf = PathBuf::new();
     file_path.push(root_path);
@@ -75,7 +75,7 @@ fn serve_client(mut client: TcpStream, config: Arc<HttpConfig>) {
     if file_path.is_dir() {
         file_path.push(*config.get_index());
     }
-    
+
     let response: HttpResponse;
     match File::open(file_path) {
         Ok(mut file) => {
@@ -126,24 +126,23 @@ fn main() {
     };
 
     info!("Starting Irontray server");
-    
+
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
     let mut opts = Options::new();
-    
+
     opts.optopt("i", "ip-address", "set listening IP address", "0.0.0.0");
     opts.optopt("p", "port", "set TCP port to listen on", "8000");
     opts.optopt("c", "conf", "path to the config file", "8000");
     opts.optflag("h", "help", "print this help menu");
-    
+
     let matches = match opts.parse(&args[1..]) {
         Ok(v)  => { v },
         Err(e) => { panic!(e.to_string()) }
     };
-    
+
     let mut ip_address = "0.0.0.0".to_string();
-    let mut port = "8000".to_string();
-    
+
     if matches.opt_present("h") {
         print_usage(&program, opts);
         return;
@@ -151,13 +150,7 @@ fn main() {
     if matches.opt_present("i") {
         ip_address = matches.opt_str("i").unwrap();
     }
-    if matches.opt_present("p") {
-        port = matches.opt_str("p").unwrap();
-    }
-    
-    let address_proto = format!("{}:{}", ip_address, port);
-    let proto: &str = &address_proto;
-    let listener = TcpListener::bind(proto).unwrap();
+
 
     let config: Arc<HttpConfig>;
     if matches.opt_present("c") {
@@ -174,9 +167,20 @@ fn main() {
     } else {
         config = Arc::new(HttpConfig::new_defaults().unwrap());
     }
-    
+
+    let address_proto: String;
+    if matches.opt_present("p") {
+        let port = String::from(matches.opt_str("p").unwrap());
+        address_proto = format!("{}:{}", ip_address, port);
+    } else {
+        address_proto = format!("{}:{}", ip_address, *config.get_port());
+    }
+    println!("{:?}", address_proto);
+    let proto: &str = &address_proto;
+    let listener = TcpListener::bind(proto).unwrap();
+
     info!("Listening on {}", proto);
-    
+
     for stream in listener.incoming() {
         let conf = config.clone();
         thread::spawn(|| {
