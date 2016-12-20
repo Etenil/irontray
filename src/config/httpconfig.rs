@@ -5,10 +5,15 @@ use std::env;
 
 extern crate toml;
 
+pub struct VhostConfig {
+    hostname: String
+}
+
 pub struct HttpConfig {
     root_path: PathBuf,
     index: String,
-    port: String
+    port: String,
+    vhosts: Vec<VhostConfig>
 }
 
 impl HttpConfig {
@@ -56,12 +61,33 @@ impl HttpConfig {
             None => "8000"
         };
 
+        let vhosts_sec = match conf.get("vhosts") {
+            Some(vhosts) => vhosts,
+            None => {
+                return Err(format!("Couldn't find a 'vhosts' section in config file"));
+            }
+        };
+
+        let mut vhosts: Vec<VhostConfig>;
+        for (vhost_name, vhost_config in vhosts_sec.iter()) {
+            let vhostname = match vhost_config.get("hostname") {
+                Some(hostname) => hostname,
+                None => {
+                    return Err(format!("Couldn't find a hostname in vhost definition"))
+                }
+            };
+            vhosts.push(VhostConfig {
+                hostname: vhostname
+            });
+        }
+
         let mut path = PathBuf::new();
         path.push(root_path.as_str().unwrap());
         return Ok(HttpConfig {
             root_path: path,
             index: String::from(index),
-            port: String::from(port)
+            port: String::from(port),
+            vhosts: vhosts
         });
     }
 
@@ -69,7 +95,8 @@ impl HttpConfig {
         return Some(HttpConfig {
             root_path: env::current_dir().unwrap(),
             index: String::from("index.html"),
-            port: String::from("8000")
+            port: String::from("8000"),
+            vhosts: null
         });
     }
 

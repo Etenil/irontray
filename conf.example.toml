@@ -3,3 +3,9 @@ root_path = "/home/guillaume/Projects"
 index = "index.html"
 port = "8000"
 
+[vhosts]
+    [vhosts.serv1]
+    hostname = "www.toto.com"
+
+    [vhosts.serv2]
+    hostname = "api.toto.com"
